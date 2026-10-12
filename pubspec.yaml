@@ -1,0 +1,39 @@
+name: iris_attendance
+description: "Iris Geofenced Attendance System - Mobile Application"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Routing and Navigation
+  go_router: ^14.2.0
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Functional / Value equality
+  equatable: ^2.0.5
+
+  # Backend & Auth
+  supabase_flutter: ^2.8.0
+
+  # Design & UI Icons
+  cupertino_icons: ^1.0.8
+  crypto: ^3.0.7
+  camera: ^0.12.1
+  image: ^4.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
