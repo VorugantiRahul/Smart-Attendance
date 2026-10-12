@@ -65,17 +65,22 @@ class CameraFrameConverter {
       final img.Image? decoded = img.decodeImage(rawBytes);
       if (decoded == null) return null;
 
+      // Handle orientation: if photo is portrait (height > width), maintain portrait dimensions
+      final bool isPortrait = decoded.height > decoded.width;
+      final int actualWidth = isPortrait ? targetHeight : targetWidth;
+      final int actualHeight = isPortrait ? targetWidth : targetHeight;
+
       final img.Image resized = img.copyResize(
         decoded,
-        width: targetWidth,
-        height: targetHeight,
+        width: actualWidth,
+        height: actualHeight,
         interpolation: img.Interpolation.linear,
       );
 
-      final List<int> grayscalePixels = List<int>.filled(targetWidth * targetHeight, 0);
+      final List<int> grayscalePixels = List<int>.filled(actualWidth * actualHeight, 0);
       int idx = 0;
-      for (int y = 0; y < targetHeight; y++) {
-        for (int x = 0; x < targetWidth; x++) {
+      for (int y = 0; y < actualHeight; y++) {
+        for (int x = 0; x < actualWidth; x++) {
           final pixel = resized.getPixel(x, y);
           // Rec.601 Luminance
           final luma = ((0.299 * pixel.r) + (0.587 * pixel.g) + (0.114 * pixel.b)).round().clamp(0, 255);
@@ -85,8 +90,8 @@ class CameraFrameConverter {
 
       return ConvertedFrame(
         grayscalePixels: grayscalePixels,
-        width: targetWidth,
-        height: targetHeight,
+        width: actualWidth,
+        height: actualHeight,
         originalImage: decoded,
       );
     } catch (_) {

@@ -270,7 +270,7 @@ class AdaptiveFaceIrisDetector implements FaceIrisDetector {
     // 3. MULTI-REGION & CONNECTED COMPONENT FACE CLUSTERING
     // We sample candidate facial regions. A valid face has skin-tone luminance
     // enclosed by background or boundaries, with internal eye / mouth contrast.
-    final horizontalSlices = 5;
+    const horizontalSlices = 5;
     final sliceWidth = width ~/ horizontalSlices;
     final List<List<int>> sliceFacePixels = List.generate(horizontalSlices, (_) => []);
 
