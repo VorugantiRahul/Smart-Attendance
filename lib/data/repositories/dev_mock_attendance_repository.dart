@@ -48,7 +48,7 @@ class DevMockAttendanceRepository implements AttendanceRepository {
     workdayStartHour: 9,
     workdayStartMinute: 0,
     gracePeriodMinutes: 15,
-    workdayEndHour: 22,
+    workdayEndHour: 23,
     workdayEndMinute: 0,
     maxCheckInsPerDay: 1,
     allowedGpsAccuracyMeters: 35.0,

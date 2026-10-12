@@ -18,7 +18,7 @@ class AttendancePolicy {
     this.workdayStartHour = 9,
     this.workdayStartMinute = 0,
     this.gracePeriodMinutes = 15,
-    this.workdayEndHour = 22, // 10:00 PM (Configured for faculty testing)
+    this.workdayEndHour = 23, // 11:00 PM (Configured for faculty testing)
     this.workdayEndMinute = 0,
     this.requireCheckout = false,
     this.maxCheckInsPerDay = 1,
@@ -92,12 +92,12 @@ class AttendancePolicy {
   }
 
   factory AttendancePolicy.fromMap(Map<String, dynamic> map) {
-    final rawEnd = (map['workday_end_hour'] as num?)?.toInt() ?? 22;
+    final rawEnd = (map['workday_end_hour'] as num?)?.toInt() ?? 23;
     return AttendancePolicy(
       workdayStartHour: (map['workday_start_hour'] as num?)?.toInt() ?? 9,
       workdayStartMinute: (map['workday_start_minute'] as num?)?.toInt() ?? 0,
       gracePeriodMinutes: (map['grace_period_minutes'] as num?)?.toInt() ?? 15,
-      workdayEndHour: rawEnd < 22 ? 22 : rawEnd, // Guarantees window is open until 10:00 PM (22:00)
+      workdayEndHour: rawEnd < 23 ? 23 : rawEnd, // Guarantees window is open until 11:00 PM (23:00)
       workdayEndMinute: (map['workday_end_minute'] as num?)?.toInt() ?? 0,
       requireCheckout: (map['require_checkout'] as bool?) ?? false,
       maxCheckInsPerDay: (map['max_check_ins_per_day'] as num?)?.toInt() ?? 1,

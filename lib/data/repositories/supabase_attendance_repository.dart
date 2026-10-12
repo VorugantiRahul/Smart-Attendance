@@ -371,7 +371,7 @@ class SupabaseAttendanceRepository implements AttendanceRepository {
     workdayStartHour: 9,
     workdayStartMinute: 0,
     gracePeriodMinutes: 15,
-    workdayEndHour: 22, // 10:00 PM
+    workdayEndHour: 23, // 11:00 PM
     workdayEndMinute: 0,
     maxCheckInsPerDay: 1,
     allowedGpsAccuracyMeters: 35.0,
@@ -387,12 +387,12 @@ class SupabaseAttendanceRepository implements AttendanceRepository {
           .maybeSingle();
       if (data != null) {
         var policy = AttendancePolicy.fromMap(data);
-        if (policy.workdayEndHour < 22) {
-          policy = policy.copyWith(workdayEndHour: 22, workdayEndMinute: 0);
+        if (policy.workdayEndHour < 23) {
+          policy = policy.copyWith(workdayEndHour: 23, workdayEndMinute: 0);
           try {
             await _client
                 .from('attendance_policies')
-                .update({'workday_end_hour': 22, 'workday_end_minute': 0})
+                .update({'workday_end_hour': 23, 'workday_end_minute': 0})
                 .eq('id', data['id']);
           } catch (_) {}
         }
