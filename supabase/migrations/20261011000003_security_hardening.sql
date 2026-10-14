@@ -35,9 +35,9 @@ BEGIN
     RAISE EXCEPTION 'Unauthenticated: Must be logged in to request verification nonce.';
   END IF;
 
-  -- Ensure caller is a student
-  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_user_id AND role = 'student') THEN
-    RAISE EXCEPTION 'Unauthorized: Only students may request attendance verification nonces.';
+  -- Ensure caller is an authorized user (student, teacher/faculty, or admin)
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_user_id AND role IN ('student', 'teacher', 'admin')) THEN
+    RAISE EXCEPTION 'Unauthorized: Only registered users may request attendance verification nonces.';
   END IF;
 
   -- Verify session is active
@@ -134,10 +134,10 @@ BEGIN
   SET is_consumed = TRUE, consumed_at = now()
   WHERE id = v_nonce_record.id;
 
-  -- 3. ENSURE STUDENT ROLE
+  -- 3. ENSURE VALID ROLE
   SELECT role INTO v_student_role FROM public.profiles WHERE id = v_student_id;
-  IF v_student_role != 'student' THEN
-    RAISE EXCEPTION 'Only students may submit attendance verification';
+  IF v_student_role NOT IN ('student', 'teacher', 'admin') THEN
+    RAISE EXCEPTION 'Unauthorized: User role not permitted to submit attendance verification';
   END IF;
 
   -- 4. FETCH SESSION & GEOFENCE PERIMETER

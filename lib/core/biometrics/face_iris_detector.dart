@@ -424,9 +424,9 @@ class AdaptiveFaceIrisDetector implements FaceIrisDetector {
     // Compute eye landmarks for this candidate
     final initLeftEyeX = normBox.left + normBox.width * 0.35;
     final initRightEyeX = normBox.left + normBox.width * 0.65;
-    final initEyeY = normBox.top + normBox.height * 0.40;
-    final roiRadiusX = normBox.width * 0.12;
-    final roiRadiusY = normBox.height * 0.10;
+    final initEyeY = normBox.top + normBox.height * 0.44;
+    final roiRadiusX = normBox.width * 0.11;
+    final roiRadiusY = normBox.height * 0.08;
 
     final leftCenter = _findPupilCenterInROI(
       pixels: pixels,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:crypto/crypto.dart';
 
 /// Secure Hardware Key Storage Contract
@@ -14,6 +15,9 @@ abstract class SecureKeyStore {
 
   /// Check whether hardware-backed keystore (TEE / Secure Enclave) is active
   Future<bool> isHardwareBacked();
+
+  /// Generates a cryptographically secure 256-bit single-use random nonce
+  String generateNonce();
 }
 
 /// Production Platform-Safe Key Storage
@@ -21,6 +25,13 @@ abstract class SecureKeyStore {
 class PlatformSecureKeyStore implements SecureKeyStore {
   static const String _keyAlias = 'iris_attendance_device_signing_key_v1';
   String _cachedPrivateKey = 'DEV_KEYSTORE_SECRET_SEED_2026';
+
+  @override
+  String generateNonce() {
+    final random = math.Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
 
   @override
   Future<String> getOrCreateDeviceKeyAlias() async {

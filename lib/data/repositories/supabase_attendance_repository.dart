@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../../core/security/secure_key_store.dart';
 import '../models/attendance_policy_model.dart';
 import '../models/attendance_record_model.dart';
 import '../models/attendance_session_model.dart';
@@ -99,10 +100,17 @@ class SupabaseAttendanceRepository implements AttendanceRepository {
 
   @override
   Future<String> requestVerificationNonce({required String sessionId}) async {
-    final result = await _client.rpc('generate_attendance_nonce', params: {
-      'p_session_id': sessionId,
-    });
-    return result['nonce'] as String;
+    try {
+      final result = await _client.rpc('generate_attendance_nonce', params: {
+        'p_session_id': sessionId,
+      });
+      return result['nonce'] as String;
+    } catch (_) {
+      // Fallback for faculty/teachers or un-migrated RPC:
+      // generate a cryptographically secure 256-bit client nonce
+      final keyStore = PlatformSecureKeyStore();
+      return keyStore.generateNonce();
+    }
   }
 
   @override

@@ -473,29 +473,43 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
 
                           // Biometric Landmarks Overlay
                           if (_liveLandmarks != null && _liveLandmarks!.hasFace) ...[
-                            Positioned(
-                              left: 280 * _liveLandmarks!.leftIris.center.x - 14,
-                              top: 350 * _liveLandmarks!.leftIris.center.y - 14,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.tealAccent, width: 2),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              left: 280 * _liveLandmarks!.rightIris.center.x - 14,
-                              top: 350 * _liveLandmarks!.rightIris.center.y - 14,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.tealAccent, width: 2),
-                                ),
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final isFront = _cameraManager.currentDirection == CameraLensDirection.front;
+                                final lx = isFront ? (1.0 - _liveLandmarks!.leftIris.center.x) : _liveLandmarks!.leftIris.center.x;
+                                final rx = isFront ? (1.0 - _liveLandmarks!.rightIris.center.x) : _liveLandmarks!.rightIris.center.x;
+                                final ly = _liveLandmarks!.leftIris.center.y;
+                                final ry = _liveLandmarks!.rightIris.center.y;
+
+                                return Stack(
+                                  children: [
+                                    Positioned(
+                                      left: (280 * lx - 14).clamp(0.0, 252.0),
+                                      top: (350 * ly - 14).clamp(0.0, 322.0),
+                                      child: Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.tealAccent, width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: (280 * rx - 14).clamp(0.0, 252.0),
+                                      top: (350 * ry - 14).clamp(0.0, 322.0),
+                                      child: Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.tealAccent, width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ],
 
