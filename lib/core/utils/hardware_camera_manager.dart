@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:ui';
 import 'package:camera/camera.dart';
 
 /// Hardware Camera Service & Lifecycle Controller
@@ -76,6 +77,7 @@ class HardwareCameraManager {
       }
 
       _controller = controller;
+      _currentResolution = resolution;
       _isInitializing = false;
       developer.log('Camera initialized successfully: ${selected.lensDirection.name} @ ${resolution.name}', name: 'HardwareCameraManager');
       return true;
@@ -86,8 +88,45 @@ class HardwareCameraManager {
     }
   }
 
+  ResolutionPreset _currentResolution = ResolutionPreset.medium;
+  ResolutionPreset get currentResolution => _currentResolution;
+  bool _isTorchOn = false;
+  bool get isTorchOn => _isTorchOn;
+  Size? get previewSize => _controller?.value.previewSize;
+  double? get aspectRatio => _controller?.value.aspectRatio;
+  String get activeCameraName => _controller?.description.name ?? 'None';
+
+  /// Toggle torch / flashlight for rear camera assisted macro eye acquisition
+  Future<bool> toggleTorch() async {
+    return await setTorch(!_isTorchOn);
+  }
+
+  /// Sets torch mode if supported by the camera hardware
+  Future<bool> setTorch(bool enable) async {
+    if (!isReady) return false;
+    try {
+      await _controller!.setFlashMode(enable ? FlashMode.torch : FlashMode.off);
+      _isTorchOn = enable;
+      return true;
+    } catch (e) {
+      developer.log('Torch mode not supported or failed: $e', name: 'HardwareCameraManager');
+      _isTorchOn = false;
+      return false;
+    }
+  }
+
+  /// Trigger autofocus and autoexposure at specific normalized viewport coordinate
+  Future<void> setFocusAndExposurePoint(Offset offset) async {
+    if (!isReady) return;
+    try {
+      await _controller!.setFocusPoint(offset);
+      await _controller!.setExposurePoint(offset);
+    } catch (_) {}
+  }
+
   /// Switches between Front Camera (selfie mode) and Rear Camera (assisted macro eye capture)
   Future<bool> switchCamera() async {
+    _isTorchOn = false;
     final nextLens = _currentDirection == CameraLensDirection.front
         ? CameraLensDirection.back
         : CameraLensDirection.front;
@@ -111,9 +150,13 @@ class HardwareCameraManager {
   Future<void> dispose() async {
     if (_controller != null) {
       try {
+        if (_isTorchOn) {
+          await _controller!.setFlashMode(FlashMode.off);
+        }
         await _controller!.dispose();
       } catch (_) {}
       _controller = null;
+      _isTorchOn = false;
     }
   }
 }

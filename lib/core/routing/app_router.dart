@@ -15,6 +15,7 @@ import '../../ui/features/dashboard/views/student_dashboard_screen.dart';
 import '../../ui/features/dashboard/views/teacher_dashboard_screen.dart';
 import '../../ui/features/dashboard/views/admin_dashboard_screen.dart';
 import '../../ui/features/dashboard/views/iris_camera_capture_screen.dart';
+import '../../ui/features/dashboard/views/biometric_diagnostic_screen.dart';
 
 /// Provider for GoRouter that dynamically evaluates authentication and RBAC guards
 final routerProvider = Provider<GoRouter>((ref) {
@@ -142,6 +143,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           final sessionId = state.uri.queryParameters['sessionId'] ?? 'cccccccc-cccc-cccc-cccc-cccccccccccc';
           return IrisCameraCaptureScreen(sessionId: sessionId);
         },
+      ),
+      GoRoute(
+        path: '/biometric-diagnostic',
+        name: 'biometric-diagnostic',
+        builder: (context, state) => const BiometricDiagnosticScreen(),
       ),
       GoRoute(
         path: '/unauthorized',

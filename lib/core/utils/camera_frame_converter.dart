@@ -98,6 +98,43 @@ class CameraFrameConverter {
       return null;
     }
   }
+
+  /// Extracts high-resolution cropped eye or face region directly from original image without downsampling
+  static ConvertedFrame? extractCrop({
+    required ConvertedFrame frame,
+    required double normLeft,
+    required double normTop,
+    required double normWidth,
+    required double normHeight,
+  }) {
+    if (frame.originalImage == null) return null;
+    try {
+      final orig = frame.originalImage!;
+      final cropX = (normLeft * orig.width).round().clamp(0, orig.width - 1);
+      final cropY = (normTop * orig.height).round().clamp(0, orig.height - 1);
+      final cropW = (normWidth * orig.width).round().clamp(10, orig.width - cropX);
+      final cropH = (normHeight * orig.height).round().clamp(10, orig.height - cropY);
+
+      final cropped = img.copyCrop(orig, x: cropX, y: cropY, width: cropW, height: cropH);
+      final List<int> pixels = List<int>.filled(cropW * cropH, 0);
+      int idx = 0;
+      for (int y = 0; y < cropH; y++) {
+        for (int x = 0; x < cropW; x++) {
+          final p = cropped.getPixel(x, y);
+          final luma = ((0.299 * p.r) + (0.587 * p.g) + (0.114 * p.b)).round().clamp(0, 255);
+          pixels[idx++] = luma;
+        }
+      }
+      return ConvertedFrame(
+        grayscalePixels: pixels,
+        width: cropW,
+        height: cropH,
+        originalImage: cropped,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class ConvertedFrame {

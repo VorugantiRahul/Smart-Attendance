@@ -628,6 +628,17 @@ class TeacherDashboardScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => context.push('/biometric-diagnostic'),
+                icon: const Icon(Icons.analytics_outlined, size: 16, color: AppTheme.irisCyan),
+                label: const Text(
+                  'Camera & Biometric Quality Diagnostics',
+                  style: TextStyle(color: AppTheme.irisCyan, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
           ],
         ),
       ),

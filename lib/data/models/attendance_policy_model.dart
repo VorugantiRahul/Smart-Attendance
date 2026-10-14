@@ -15,11 +15,11 @@ class AttendancePolicy {
   final bool allowMockLocations;
 
   const AttendancePolicy({
-    this.workdayStartHour = 9,
+    this.workdayStartHour = 0,
     this.workdayStartMinute = 0,
-    this.gracePeriodMinutes = 15,
-    this.workdayEndHour = 23, // 11:00 PM (Configured for faculty testing)
-    this.workdayEndMinute = 0,
+    this.gracePeriodMinutes = 60,
+    this.workdayEndHour = 23,
+    this.workdayEndMinute = 59,
     this.requireCheckout = false,
     this.maxCheckInsPerDay = 1,
     this.allowedGpsAccuracyMeters = 35.0,
@@ -28,57 +28,34 @@ class AttendancePolicy {
 
   /// Check whether a timestamp is considered a Late Arrival
   bool isLateArrival(DateTime checkInTime) {
-    final startMinutes = workdayStartHour * 60 + workdayStartMinute;
-    final cutoffMinutes = startMinutes + gracePeriodMinutes;
-    final checkInMinutes = checkInTime.hour * 60 + checkInTime.minute;
-    return checkInMinutes > cutoffMinutes;
+    return false;
   }
 
-  /// Requirement 4: Allow faculty to mark attendance from 9:00 AM to 5:00 PM inclusive
+  /// Attendance is open 24/7 - can mark attendance at any time
   bool isAttendanceWindowOpen(DateTime time) {
-    final checkMinutes = time.hour * 60 + time.minute;
-    final startMinutes = workdayStartHour * 60 + workdayStartMinute; // e.g. 9 * 60 = 540 (09:00)
-    final endMinutes = workdayEndHour * 60 + workdayEndMinute;       // e.g. 17 * 60 = 1020 (17:00)
-    return checkMinutes >= startMinutes && checkMinutes <= endMinutes;
+    return true;
   }
 
   bool isBeforeAttendanceWindow(DateTime time) {
-    final checkMinutes = time.hour * 60 + time.minute;
-    final startMinutes = workdayStartHour * 60 + workdayStartMinute;
-    return checkMinutes < startMinutes;
+    return false;
   }
 
   bool isAfterAttendanceWindow(DateTime time) {
-    final checkMinutes = time.hour * 60 + time.minute;
-    final endMinutes = workdayEndHour * 60 + workdayEndMinute;
-    return checkMinutes > endMinutes;
+    return false;
   }
 
   String getAttendanceWindowNotice(DateTime time) {
-    if (isBeforeAttendanceWindow(time)) {
-      return 'Attendance is not open yet. You can mark attendance from 9:00 AM.';
-    } else if (isAfterAttendanceWindow(time)) {
-      return 'The attendance window has closed for today.';
-    }
-    return 'Attendance window is open ($workingHoursString).';
+    return 'Attendance window is open 24/7 (Any time).';
   }
 
   /// Check whether check-in is within official working hours window
   bool isWithinWorkingHours(DateTime checkInTime) {
-    return isAttendanceWindowOpen(checkInTime);
+    return true;
   }
 
   /// Formatted working hours string
   String get workingHoursString {
-    final startPeriod = workdayStartHour >= 12 ? 'PM' : 'AM';
-    final startH = workdayStartHour > 12 ? workdayStartHour - 12 : (workdayStartHour == 0 ? 12 : workdayStartHour);
-    final startM = workdayStartMinute.toString().padLeft(2, '0');
-
-    final endPeriod = workdayEndHour >= 12 ? 'PM' : 'AM';
-    final endH = workdayEndHour > 12 ? workdayEndHour - 12 : (workdayEndHour == 0 ? 12 : workdayEndHour);
-    final endM = workdayEndMinute.toString().padLeft(2, '0');
-
-    return '$startH:$startM $startPeriod – $endH:$endM $endPeriod';
+    return '24/7 (Any time)';
   }
 
   /// Formatted grace period cutoff string

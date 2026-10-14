@@ -267,12 +267,18 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
             ? detection.rightIris.center.y * _frameHeight
             : (detection.leftIris.isDetected ? detection.leftIris.center.y * _frameHeight : (_frameHeight / 2.0));
 
+        final double facePixelW = (detection.faceBoundingBox != null)
+            ? (detection.faceBoundingBox!.width * _frameWidth)
+            : (_frameWidth * 0.5);
+        final double estimatedIrisRadius = (facePixelW * 0.22 * 0.22).clamp(10.0, 45.0);
+        final double estimatedPupilRadius = (estimatedIrisRadius * 0.35).clamp(4.0, 16.0);
+
         final localization = IrisLocalizationResult(
           isDetected: true,
-          pupilCircle: IrisBoundaryCircle(centerX: irisX, centerY: irisY, radius: 20.0),
-          irisLimbusCircle: IrisBoundaryCircle(centerX: irisX, centerY: irisY, radius: 65.0),
+          pupilCircle: IrisBoundaryCircle(centerX: irisX, centerY: irisY, radius: estimatedPupilRadius),
+          irisLimbusCircle: IrisBoundaryCircle(centerX: irisX, centerY: irisY, radius: estimatedIrisRadius),
           confidence: 0.95,
-          modelSource: 'MediaPipe FaceMesh Iris Pipeline',
+          modelSource: 'Geometric Anatomical Landmark Model',
         );
 
         // 4. Generate Genuine Daugman Iris Template (Rubber Sheet Normalization + Gabor Filtering)
@@ -424,6 +430,11 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         foregroundColor: Colors.white,
         title: Text(widget.isReEnrollment ? 'Re-Enroll Faculty Biometrics' : 'Faculty Iris & Face Registration'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'Camera Diagnostics & Telemetry',
+            onPressed: () => context.push('/biometric-diagnostic'),
+          ),
           if (_phase == EnrollmentPhase.liveCameraPreview && _hasPhysicalCamera)
             IconButton(
               icon: const Icon(Icons.flip_camera_ios_rounded),

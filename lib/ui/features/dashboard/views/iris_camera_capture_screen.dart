@@ -167,7 +167,6 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
   Future<void> _captureRealFrameAndProcess({
     bool simulateStaticPhoto = false,
     bool simulateScreenReplay = false,
-    bool forceVerify = false,
   }) async {
     if (!mounted || _isProcessingFrame) return;
 
@@ -196,7 +195,6 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
       _currentFramePixels,
       simulateStaticPhoto: simulateStaticPhoto,
       simulateScreenReplay: simulateScreenReplay,
-      forceVerify: forceVerify,
     );
   }
 
@@ -205,7 +203,6 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
     List<int> framePixels, {
     bool simulateStaticPhoto = false,
     bool simulateScreenReplay = false,
-    bool forceVerify = false,
   }) async {
     if (!mounted || _isProcessingFrame) return;
     _isProcessingFrame = true;
@@ -221,41 +218,6 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
       width: _activeFrameWidth,
       height: _activeFrameHeight,
     );
-
-    if (!detection.hasFace && forceVerify) {
-      const double estRadius = 0.05;
-      detection = const FaceIrisDetectionResult(
-        hasFace: true,
-        faceCount: 1,
-        validationStatus: FaceDetectionValidationStatus.validSingleFace,
-        faceBoundingBox: NormalizedBoundingBox(
-          left: 0.20,
-          top: 0.15,
-          width: 0.60,
-          height: 0.70,
-        ),
-        leftIris: EyeIrisLandmarks(
-          center: NormalizedLandmark(x: 0.38, y: 0.42),
-          outerLimbus: NormalizedLandmark(x: 0.38 - estRadius, y: 0.42),
-          innerLimbus: NormalizedLandmark(x: 0.38 + estRadius, y: 0.42),
-          topLimbus: NormalizedLandmark(x: 0.38, y: 0.42 - estRadius),
-          bottomLimbus: NormalizedLandmark(x: 0.38, y: 0.42 + estRadius),
-          estimatedRadiusNormalized: estRadius,
-          isDetected: true,
-        ),
-        rightIris: EyeIrisLandmarks(
-          center: NormalizedLandmark(x: 0.62, y: 0.42),
-          outerLimbus: NormalizedLandmark(x: 0.62 - estRadius, y: 0.42),
-          innerLimbus: NormalizedLandmark(x: 0.62 + estRadius, y: 0.42),
-          topLimbus: NormalizedLandmark(x: 0.62, y: 0.42 - estRadius),
-          bottomLimbus: NormalizedLandmark(x: 0.62, y: 0.42 + estRadius),
-          estimatedRadiusNormalized: estRadius,
-          isDetected: true,
-        ),
-        confidence: 0.95,
-        statusMessage: 'Face and biometrics captured.',
-      );
-    }
 
     if (!detection.hasFace) {
       if (mounted) {
@@ -303,7 +265,7 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
       eyeDiameterPixels: 130.0,
     );
 
-    if (!quality.isAcceptable && quality.overallQualityScore < 20.0 && !forceVerify) {
+    if (!quality.isAcceptable && quality.overallQualityScore < 20.0) {
       if (mounted) {
         setState(() {
           _liveFeedback = quality.guidanceInstructions.first;
@@ -403,6 +365,11 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
         foregroundColor: Colors.white,
         title: const Text('Biometric Attendance Scanner'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'Camera Diagnostics & Telemetry',
+            onPressed: () => context.push('/biometric-diagnostic'),
+          ),
           if (_hasPhysicalCamera)
             IconButton(
               icon: const Icon(Icons.flip_camera_ios_rounded),
@@ -668,65 +635,31 @@ class _IrisCameraCaptureScreenState extends ConsumerState<IrisCameraCaptureScree
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 4,
                           ),
-                          onPressed: _isProcessingFrame ? null : () => _captureRealFrameAndProcess(forceVerify: true),
+                          onPressed: _isProcessingFrame ? null : () => _captureRealFrameAndProcess(),
                           icon: const Icon(Icons.camera_alt_rounded, size: 20),
                           label: const Text(
-                            'Capture & Confirm Attendance (100%)',
+                            'Capture Frame & Verify Biometrics',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        TextButton.icon(
-                          onPressed: _isProcessingFrame ? null : () => _captureRealFrameAndProcess(),
-                          icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.white70),
-                          label: Text(
-                            _scanStatus == AutomaticScanStatus.rejected ? 'Retry Auto Verification' : 'Force Re-scan Face & Iris',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.irisCyan,
+                            side: const BorderSide(color: AppTheme.irisCyan),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () => context.push('/biometric-diagnostic'),
+                          icon: const Icon(Icons.analytics_outlined, size: 18),
+                          label: const Text(
+                            'Open Camera Diagnostic Mode',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
                     ),
             ),
-
-            const SizedBox(height: 12),
-
-            // Simulation Attack Switcher Chips (Anti-spoofing tests)
-            Wrap(
-              spacing: 8,
-              children: [
-                ActionChip(
-                  label: const Text('Live Genuine Iris', style: TextStyle(fontSize: 11)),
-                  onPressed: () {
-                    _currentFramePixels = SyntheticFaceGenerator.generateSingleFaceImage(
-                      width: _frameWidth,
-                      height: _frameHeight,
-                    );
-                    _processFrame(_currentFramePixels);
-                  },
-                ),
-                ActionChip(
-                  label: const Text('Simulate Printed Photo', style: TextStyle(fontSize: 11)),
-                  onPressed: () {
-                    _currentFramePixels = SyntheticFaceGenerator.generateSingleFaceImage(
-                      width: _frameWidth,
-                      height: _frameHeight,
-                    );
-                    _processFrame(_currentFramePixels, simulateStaticPhoto: true);
-                  },
-                ),
-                ActionChip(
-                  label: const Text('Simulate Screen Replay', style: TextStyle(fontSize: 11)),
-                  onPressed: () {
-                    _currentFramePixels = SyntheticFaceGenerator.generateSingleFaceImage(
-                      width: _frameWidth,
-                      height: _frameHeight,
-                    );
-                    _processFrame(_currentFramePixels, simulateScreenReplay: true);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
           ],
         ),
       ),

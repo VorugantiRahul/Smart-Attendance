@@ -46,9 +46,9 @@ class IrisQualityAssessment {
     final meanIntensity = sum / grayscalePixels.length;
     final brightness = meanIntensity / 255.0;
 
-    if (brightness < 0.08) {
+    if (brightness < 0.15) {
       instructions.add('Lighting is too dark. Move towards a well-lit area.');
-    } else if (brightness > 0.96) {
+    } else if (brightness > 0.95) {
       instructions.add('Too much glare/direct light. Avoid strong backlights or reflections.');
     }
 
@@ -73,22 +73,22 @@ class IrisQualityAssessment {
     // Normalize sharpness score (values above 6 are sharp on standard webcams)
     final sharpness = (avgLaplacian / 12.0).clamp(0.0, 1.0);
 
-    if (sharpness < 0.10) {
+    if (sharpness < 0.15) {
       instructions.add('Camera out of focus. Hold the device steady at eye level.');
     }
 
     // 3. Eye sizing & distance check
-    if (eyeDiameterPixels < 50.0) {
+    if (eyeDiameterPixels < 60.0) {
       instructions.add('Too far away. Bring the camera closer until your eye fills the circle.');
-    } else if (eyeDiameterPixels > 280.0) {
+    } else if (eyeDiameterPixels > 260.0) {
       instructions.add('Too close. Move the camera back slightly.');
     }
 
     // 4. Contrast & Occlusion heuristics
     final contrast = (sharpness * 0.7 + (1.0 - (brightness - 0.55).abs() * 2) * 0.3).clamp(0.1, 1.0);
-    final occlusion = (brightness > 0.90 || brightness < 0.08 || sharpness < 0.10) ? 0.35 : 0.08;
+    final occlusion = (brightness > 0.90 || brightness < 0.15 || sharpness < 0.15) ? 0.40 : 0.08;
 
-    if (occlusion > 0.40) {
+    if (occlusion > 0.35) {
       instructions.add('Open your eye wide to prevent eyelids or eyelashes from covering the iris.');
     }
 
@@ -99,7 +99,7 @@ class IrisQualityAssessment {
             ((1.0 - occlusion) * 10.0))
         .clamp(0.0, 100.0);
 
-    final isAcceptable = instructions.isEmpty || score >= 20.0;
+    final isAcceptable = instructions.isEmpty;
 
     if (instructions.isEmpty) {
       instructions.add('Eye well-aligned. Hold steady for capture.');
