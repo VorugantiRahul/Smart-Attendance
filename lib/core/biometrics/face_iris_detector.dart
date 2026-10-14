@@ -296,11 +296,12 @@ class AdaptiveFaceIrisDetector implements FaceIrisDetector {
     }
 
     // Check if there are separate non-contiguous face clusters (multiple faces)
-    // E.g. slice 0 or 1 has a dense face, AND slice 3 or 4 has a dense face separated by an empty gap
-    if ((activeSlices.contains(0) && activeSlices.contains(3)) ||
-        (activeSlices.contains(1) && activeSlices.contains(3) && !activeSlices.contains(2)) ||
-        (activeSlices.contains(1) && activeSlices.contains(4)) ||
-        (activeSlices.contains(0) && activeSlices.contains(4))) {
+    // There must be separate face clusters on the left (slice 0 or 1) AND on the right (slice 3 or 4),
+    // separated by an empty central gap (slice 2 does not contain a face).
+    // A single centered face (slice 2 active) must NEVER be classified as multiple faces.
+    if (!activeSlices.contains(2) &&
+        (activeSlices.contains(0) || activeSlices.contains(1)) &&
+        (activeSlices.contains(3) || activeSlices.contains(4))) {
       // Check if both sides have internal eye contrast
       final leftHasEyes = _hasInternalEyeContrast(
         pixels: grayscalePixels,
