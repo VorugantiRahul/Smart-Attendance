@@ -42,6 +42,14 @@ class CameraDiagnosticTelemetry {
   final double interpupillaryDistancePixels;
   final double estimatedIrisDiameterPixels;
 
+  // Non-Maximum Suppression (NMS) & Frame Sequencing metrics
+  final List<NormalizedBoundingBox> allDetectedFaces;
+  final int rawDetectionsCount;
+  final int distinctFacesCount;
+  final int frameId;
+  final int inferenceDurationMs;
+  final String validationStatusName;
+
   // Optical & Quality metrics
   final double sharpnessLaplacian;
   final double meanLuminance;
@@ -78,6 +86,12 @@ class CameraDiagnosticTelemetry {
     required this.overallQualityScore,
     required this.diagnosticGuidance,
     required this.isSuitableForBiometrics,
+    this.allDetectedFaces = const [],
+    this.rawDetectionsCount = 0,
+    this.distinctFacesCount = 0,
+    this.frameId = 0,
+    this.inferenceDurationMs = 0,
+    this.validationStatusName = 'validSingleFace',
   });
 
   Map<String, dynamic> toJson() => {
@@ -94,6 +108,11 @@ class CameraDiagnosticTelemetry {
       'detected': faceDetected,
       'count': faceCount,
       'confidence': double.parse(faceConfidence.toStringAsFixed(2)),
+      'raw_candidates': rawDetectionsCount,
+      'distinct_faces': distinctFacesCount,
+      'frame_id': frameId,
+      'inference_ms': inferenceDurationMs,
+      'status': validationStatusName,
       'bbox': faceBoundingBox != null
           ? {
               'left': double.parse(faceBoundingBox!.left.toStringAsFixed(2)),
@@ -281,11 +300,12 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
     }
     final avgLaplacian = lapCount > 0 ? (lapSum / lapCount) : 0.0;
 
-    // 3. Face & Eye landmark localization
+    // 3. Face & Eye landmark localization with Non-Maximum Suppression (NMS)
     final detection = await _detector.detectLandmarks(
       grayscalePixels: pixels,
       width: width,
       height: height,
+      frameId: _frameCount,
     );
 
     // Compute concrete pixel dimensions
@@ -324,7 +344,11 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
     bool isSuitable = false;
 
     if (!detection.hasFace) {
-      guidance = 'Face not detected. Position your entire face squarely in front of the lens.';
+      if (detection.validationStatus == FaceDetectionValidationStatus.multipleFaces) {
+        guidance = 'Multiple faces detected (${detection.distinctFacesCount} distinct faces). Ensure only one person is visible.';
+      } else {
+        guidance = 'Face not detected. Position your entire face squarely in front of the lens.';
+      }
     } else if (eyeW < 30.0) {
       guidance = 'Move closer: Eye width is ${eyeW.toInt()} px (minimum 40 px required; ISO iris standard recommends >= 150 px).';
     } else if (avgLaplacian < 2.5) {
@@ -367,6 +391,12 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
       overallQualityScore: compositeScore,
       diagnosticGuidance: guidance,
       isSuitableForBiometrics: isSuitable,
+      allDetectedFaces: detection.allDetectedFaces,
+      rawDetectionsCount: detection.rawDetectionsCount,
+      distinctFacesCount: detection.distinctFacesCount,
+      frameId: detection.frameId,
+      inferenceDurationMs: detection.inferenceDurationMs,
+      validationStatusName: detection.validationStatus.name,
     );
   }
 
@@ -631,36 +661,49 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
                         const Center(child: Text('Camera sensor unavailable', style: TextStyle(color: Colors.white54))),
 
                       // Biometric Landmark HUD Overlay
-                      if (t != null && t.faceDetected && t.faceBoundingBox != null)
+                      if (t != null && (t.faceDetected || t.allDetectedFaces.isNotEmpty))
                         LayoutBuilder(
                           builder: (context, constraints) {
                             final w = constraints.maxWidth;
                             final h = constraints.maxHeight;
-                            final fb = t.faceBoundingBox!;
-
-                            final boxLeft = fb.left * w;
-                            final boxTop = fb.top * h;
-                            final boxW = fb.width * w;
-                            final boxH = fb.height * h;
 
                             return Stack(
                               children: [
-                                // Face Bounding Box
-                                Positioned(
-                                  left: boxLeft,
-                                  top: boxTop,
-                                  width: boxW,
-                                  height: boxH,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: AppTheme.irisCyan, width: 2),
-                                      borderRadius: BorderRadius.circular(8),
+                                // Face Bounding Boxes for all distinct detected faces
+                                for (int i = 0; i < t.allDetectedFaces.length; i++)
+                                  Positioned(
+                                    left: t.allDetectedFaces[i].left * w,
+                                    top: t.allDetectedFaces[i].top * h,
+                                    width: t.allDetectedFaces[i].width * w,
+                                    height: t.allDetectedFaces[i].height * h,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: i == 0 ? AppTheme.irisCyan : Colors.orangeAccent,
+                                          width: 2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.topLeft,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          color: Colors.black87,
+                                          child: Text(
+                                            i == 0 ? 'Face #1 (${((t.faceConfidence) * 100).toInt()}%)' : 'Face #${i + 1}',
+                                            style: TextStyle(
+                                              color: i == 0 ? AppTheme.irisCyan : Colors.orangeAccent,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
 
                                 // Left Eye Marker
-                                if (t.leftIris != null)
+                                if (t.leftIris != null && t.leftIris!.isDetected)
                                   Positioned(
                                     left: (t.leftIris!.center.x * w) - 16,
                                     top: (t.leftIris!.center.y * h) - 16,
@@ -675,7 +718,7 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
                                   ),
 
                                 // Right Eye Marker
-                                if (t.rightIris != null)
+                                if (t.rightIris != null && t.rightIris!.isDetected)
                                   Positioned(
                                     left: (t.rightIris!.center.x * w) - 16,
                                     top: (t.rightIris!.center.y * h) - 16,
@@ -705,8 +748,8 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
                             border: Border.all(color: Colors.white24),
                           ),
                           child: Text(
-                            'FPS: ${(t?.fps ?? 0).toStringAsFixed(1)} | Latency: ${t?.latencyMs ?? 0}ms | Lens: ${_cameraManager.currentDirection.name}',
-                            style: const TextStyle(color: AppTheme.irisCyan, fontSize: 11, fontFamily: 'monospace'),
+                            'Frame: #${t?.frameId ?? 0} | ${t?.inferenceDurationMs ?? 0}ms | Raw: ${t?.rawDetectionsCount ?? 0} -> NMS: ${t?.distinctFacesCount ?? 0} | ${t?.frameWidth ?? 0}x${t?.frameHeight ?? 0}',
+                            style: const TextStyle(color: AppTheme.irisCyan, fontSize: 10, fontFamily: 'monospace'),
                           ),
                         ),
                       ),
@@ -724,6 +767,32 @@ class _BiometricDiagnosticScreenState extends ConsumerState<BiometricDiagnosticS
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
+                  // NMS & Frame Telemetry Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricCard(
+                          title: 'NMS Face Deduplication',
+                          value: 'Raw: ${t?.rawDetectionsCount ?? 0} -> Distinct: ${t?.distinctFacesCount ?? 0}',
+                          status: (t?.distinctFacesCount ?? 0) == 1
+                              ? _MetricStatus.good
+                              : ((t?.distinctFacesCount ?? 0) > 1 ? _MetricStatus.warning : _MetricStatus.bad),
+                          subtitle: '${math.max(0, (t?.rawDetectionsCount ?? 0) - (t?.distinctFacesCount ?? 0))} duplicate proposals suppressed',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _MetricCard(
+                          title: 'Frame & Pipeline',
+                          value: 'Frame #${t?.frameId ?? 0} (${t?.inferenceDurationMs ?? 0}ms)',
+                          status: _MetricStatus.good,
+                          subtitle: '${t?.frameWidth ?? 0}x${t?.frameHeight ?? 0} ${t?.isPortrait == true ? "Portrait" : "Landscape"} | Status: ${t?.validationStatusName ?? "idle"}',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
                   // Row 1: Face & Eyes
                   Row(
                     children: [

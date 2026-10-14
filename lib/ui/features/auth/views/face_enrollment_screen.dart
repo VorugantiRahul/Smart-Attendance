@@ -58,8 +58,8 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
   bool _hasPhysicalCamera = false;
 
   // Frame dimension settings
-  static const int _frameWidth = 320;
-  static const int _frameHeight = 240;
+  int _frameWidth = 320;
+  int _frameHeight = 240;
 
   // Current selected/captured photograph pixels and BMP representation
   List<int>? _selectedPhotoPixels;
@@ -140,8 +140,8 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
       final Uint8List rawBytes = await file.readAsBytes();
       final ConvertedFrame? converted = CameraFrameConverter.convertXFileBytes(
         rawBytes,
-        targetWidth: _frameWidth,
-        targetHeight: _frameHeight,
+        targetWidth: 320,
+        targetHeight: 240,
       );
 
       if (converted == null) {
@@ -151,6 +151,8 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
       developer.log('Captured real camera image converted: ${converted.width}x${converted.height}', name: 'FaceEnrollmentScreen');
 
       setState(() {
+        _frameWidth = converted.width;
+        _frameHeight = converted.height;
         _phase = EnrollmentPhase.previewAndValidate;
       });
 
@@ -178,12 +180,16 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
 
   /// Sets up a photo preset for simulation and verification testing
   void _loadPreset(SampleImagePreset preset) {
+    setState(() {
+      _frameWidth = 320;
+      _frameHeight = 240;
+    });
     List<int> pixels;
     switch (preset) {
       case SampleImagePreset.clearFace:
         pixels = SyntheticFaceGenerator.generateSingleFaceImage(
-          width: _frameWidth,
-          height: _frameHeight,
+          width: 320,
+          height: 240,
         );
         break;
       case SampleImagePreset.noFaceLandscape:
